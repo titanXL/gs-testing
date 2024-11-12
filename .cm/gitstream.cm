@@ -15,29 +15,33 @@ automations:
         args:
           label: "{{ calc.etr }} min review"
           color: {{ colors.red if (calc.etr >= 20) else ( colors.yellow if (calc.etr >= 5) else colors.green ) }}
-  # Inform PR authors when they fail to reference Jira tickets in the PR title or description.
-  label_missing_jira_info:
+  major_release_change_label:
     if:
-      - {{ not (has.jira_ticket_in_title or has.jira_ticket_in_desc) }}
+      - {{ pr.title | match(regex=release_change.major_regex) }}
     run:
       - action: add-label@v1
         args:
-          label: "missing-jira"
+          label: "major"
           color: {{ colors.red }}
-      - action: add-comment@v1
-        args:
-          comment: |
-            This PR is missing a Jira ticket reference in the title or description.
-            Please add a Jira ticket reference to the title or description of this PR.
-  # Post a comment that lists the best experts for the files that were modified.
-  explain_code_experts:
+  minor_release_change_label:
     if:
-      - true
-    run:
-      - action: explain-code-experts@v1 
-        args:
-          gt: 10 
+      - {{ pr.title | match(regex=release_change.major_regex) | nope }}
+      - {{ pr.title | match(regex=release_change.minor_regex) }}
 
+    run:
+      - action: add-label@v1
+        args:
+          label: "minor"
+          color: {{ colors.green }}
+  patch_release_change_label:
+    if:
+      - {{ pr.title | match(regex=release_change.major_regex) | nope }}
+      - {{ pr.title | match(regex=release_change.minor_regex) | nope }}
+    run:
+      - action: add-label@v1
+        args:
+          label: "patch"
+          color: {{ colors.yellow }}
 
 # +----------------------------------------------------------------------------+
 # | Custom Expressions                                                         |
@@ -47,9 +51,9 @@ automations:
 calc:
   etr: {{ branch | estimatedReviewTime }}
 
-has:
-  jira_ticket_in_title: {{ pr.title | includes(regex=r/\b[A-Za-z]+-\d+\b/) }}
-  jira_ticket_in_desc: {{ pr.description | includes(regex=r/atlassian.net\/browse\/\w{1,}-\d{3,4}/) }}
+release_change:
+  major_regex: r/^(.*!|BREAKING CHANGE).*:/
+  minor_regex: r/(feat)/
 
 colors:
   red: 'b60205'
