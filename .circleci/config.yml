@@ -3,6 +3,10 @@
 # See: https://circleci.com/docs/configuration-reference
 # Stacks detected: cicd:github-actions:.github/workflows
 version: 2.1
+
+orbs:
+  node: circleci/node@5.0.3
+
 jobs:
   test:
     docker:
